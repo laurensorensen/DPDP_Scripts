@@ -36,8 +36,8 @@ for file in `find ./objects -maxdepth 1 -mindepth 1 ! -name '.*' -type f` ; do
     #check pre-requisites
     if [ -s "${access_path}/${base%.*}.mp4" ] ; then
         echo "${access_path}/${base%.*}.mp4 already exists"
-        #add process to check for versioning of the output of the process
-        exit 1
+        # use output code to indicate that the service is not needed
+        exit 86
     fi
 
     #set premis event variables

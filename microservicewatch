@@ -37,6 +37,13 @@ FAIL_DIR="$PROCESSDIR/fail/${SCRIPTNAMESHORT}/"
 INVALID_DIR="$PROCESSDIR/invalid/"
 PROCESS_DIR="$PROCESSDIR/in_process/${SCRIPTNAMESHORT}/"
 
+# make watch folders if not already existing
+[ -d "$DROP_DIR" ] || mkdir -p "$DROP_DIR"
+[ -d "$PASS_DIR" ] || mkdir -p "$PASS_DIR"
+[ -d "$FAIL_DIR" ] || mkdir -p "$FAIL_DIR"
+[ -d "$INVALID_DIR" ] || mkdir -p "$INVALID_DIR"
+[ -d "$PROCESS_DIR" ] || mkdir -p "$PROCESS_DIR"
+
 TMP_PKG_LIST=$(mktemp)
 NOWFILE=$(mktemp)
 sleep 1

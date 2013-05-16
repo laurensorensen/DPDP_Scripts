@@ -32,6 +32,7 @@ touch "$RUNNINGFILE"
 
 # declare watch folders
 DROP_DIR="$PROCESSDIR/drop/${SCRIPTNAMESHORT}/"
+SKIP_DIR="$PROCESSDIR/skip/${SCRIPTNAMESHORT}/"
 PASS_DIR="$PROCESSDIR/pass/${SCRIPTNAMESHORT}/"
 FAIL_DIR="$PROCESSDIR/fail/${SCRIPTNAMESHORT}/"
 INVALID_DIR="$PROCESSDIR/invalid/"
@@ -39,6 +40,7 @@ PROCESS_DIR="$PROCESSDIR/in_process/${SCRIPTNAMESHORT}/"
 
 # make watch folders if not already existing
 [ -d "$DROP_DIR" ] || mkdir -p "$DROP_DIR"
+[ -d "$SKIP_DIR" ] || mkdir -p "$SKIP_DIR"
 [ -d "$PASS_DIR" ] || mkdir -p "$PASS_DIR"
 [ -d "$FAIL_DIR" ] || mkdir -p "$FAIL_DIR"
 [ -d "$INVALID_DIR" ] || mkdir -p "$INVALID_DIR"
@@ -63,6 +65,9 @@ while read PACKAGE ; do
         MICROSERVICE_EXIT="$?"
         if [ "$MICROSERVICE_EXIT" -eq "0" ] ; then
             mv -v -n "$PROCESS_DIR/$PACKAGE" "$PASS_DIR/"
+        elif [ "$MICROSERVICE_EXIT" -eq "86" ] ; then
+            # reserving 86 as a microservice output code which means that the application of the service is not needed
+            mv -v -n "$PROCESS_DIR/$PACKAGE" "$SKIP_DIR/"
         else
             mv -v -n "$PROCESS_DIR/$PACKAGE" "$FAIL_DIR/"
         fi

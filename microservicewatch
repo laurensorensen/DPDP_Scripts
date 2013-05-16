@@ -1,0 +1,71 @@
+#!/bin/bash
+# cron job script for selected microservice
+
+# please configure to where you want the drop folders to live
+PROCESSDIR="/mnt/raid1/process"
+
+NO_ARGS=1
+SCRIPTNAME="$1"
+SCRIPTNAMESHORT=`echo $(basename "${SCRIPTNAME%.*}")`
+
+# used functions
+get_iso8601(){
+    date +%FT%T
+}
+report(){
+    echo `get_iso8601`" ${SCRIPTNAMESHORT}: ${1}"
+}
+
+if [ ! -d "$PROCESSDIR" ] ; then
+    report "$PROCESSDIR is not found"
+    exit 1
+fi
+if [ "$#" -ne "$NO_ARGS" ] ; then
+    report "$0 requires 1 argument which is the script to apply." | tee -a "${PROCESSDIR}/error_log.txt"
+    exit 1
+fi
+
+# test to make sure a previously called process is not still running
+RUNNINGFILE="/tmp/${SCRIPTNAMESHORT}_cron.running"
+[ -f "$RUNNINGFILE" ] && exit
+touch "$RUNNINGFILE"
+
+# declare watch folders
+DROP_DIR="$PROCESSDIR/drop/${SCRIPTNAMESHORT}/"
+PASS_DIR="$PROCESSDIR/pass/${SCRIPTNAMESHORT}/"
+FAIL_DIR="$PROCESSDIR/fail/${SCRIPTNAMESHORT}/"
+INVALID_DIR="$PROCESSDIR/invalid/"
+PROCESS_DIR="$PROCESSDIR/in_process/${SCRIPTNAMESHORT}/"
+
+TMP_PKG_LIST=$(mktemp)
+NOWFILE=$(mktemp)
+sleep 1
+find "$DROP_DIR" -maxdepth 1 -mindepth 1 -type d ! -newer "$NOWFILE" -type d -exec basename "{}" \; > "$TMP_PKG_LIST"
+while read PACKAGE ; do
+    startdir=$(pwd)
+    cd "$DROP_DIR"
+    # warning, deleting .DS_Store files before processing package
+    find "$PACKAGE" -name '*.DS_Store' -type f -delete
+    [ -f "/tmp/${PACKAGE}_validityerror1.txt" ] && rm "/tmp/${PACKAGE}_validityerror1.txt"
+    [ -f "/tmp/${PACKAGE}_validityerror.txt" ] && rm "/tmp/${PACKAGE}_validityerror.txt"
+    python /usr/local/bin/verifySIPCompliance.py "$PACKAGE" 1>"/tmp/${PACKAGE}_validityerror1.txt" 2>"/tmp/${PACKAGE}_validityerror2.txt"
+    VERIFY_EXIT="$?"
+    if [ "$VERIFY_EXIT" -eq "0" ] ; then
+        mv -v -n "$PACKAGE" "$PROCESS_DIR/"
+        "$SCRIPTNAME" "$PROCESS_DIR/$PACKAGE"
+        MICROSERVICE_EXIT="$?"
+        if [ "$MICROSERVICE_EXIT" -eq "0" ] ; then
+            mv -v -n "$PROCESS_DIR/$PACKAGE" "$PASS_DIR/"
+        else
+            mv -v -n "$PROCESS_DIR/$PACKAGE" "$FAIL_DIR/"
+        fi
+    else
+        mv -v -n "$PACKAGE" "$INVALID_DIR/"
+        [ -s "/tmp/${PACKAGE}_validityerror1.txt" ] && mv -v -n "/tmp/${PACKAGE}_validityerror1.txt" "$INVALID_DIR/"
+        [ -s "/tmp/${PACKAGE}_validityerror2.txt" ] && mv -v -n "/tmp/${PACKAGE}_validityerror2.txt" "$INVALID_DIR/"
+    fi
+    cd "$startdir"
+done < "$TMP_PKG_LIST"
+rm "$TMP_PKG_LIST"
+rm "$NOWFILE"
+rm "$RUNNINGFILE"

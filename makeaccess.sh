@@ -18,7 +18,9 @@ ffmpeg_exe="/usr/local/bin/ffmpeg"
 [ "$#" -ne "1" ] && { echo This script requires one argument, the path to a repository SIP. ; exit 1 ;};
 [ ! -d "$package_path" ] && { echo "$package_path" is not a directory. ; exit 1 ;};
 
-deathToDS_Store.sh "$package_path"
+# warning, deleting .DS_Store files before processing package
+find "$PACKAGE" -name '*.DS_Store' -type f -delete
+
 verifySIPCompliance.py "$package_path"
 [ "$?" != 0 ] && { echo "$package_path file SIP Compliance tests." ; exit 1 ;};
 

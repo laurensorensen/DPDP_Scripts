@@ -1,4 +1,3 @@
-smnadmin@smn:~$ cat /usr/local/bin/makeaccess.sh 
 #!/bin/bash
 # make access
 version=0.1
